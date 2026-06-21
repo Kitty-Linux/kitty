@@ -1,0 +1,8 @@
+# Ignore compiled ISO binaries and build outputs
+*.iso
+*.img
+out/
+work/
+
+# Ignore local virtual testing drives
+*.qcow2

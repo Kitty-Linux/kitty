@@ -1,0 +1,103 @@
+#!/bin/bash
+set -e
+
+echo "=================================================="
+echo "       WELCOME TO THE KITTY LINUX INSTALLER       "
+echo "=================================================="
+
+TARGET_DRIVE="/dev/nvme0n1"
+
+echo "==> PRE-INSTALL SETUP..."
+timedatectl
+
+echo "==> ENTER CONFIGURATION..."
+DEFAULT_DRIVE="/dev/nvme0n1"
+read -p "Enter target disk drive [Default: $DEFAULT_DRIVE]: " TARGET_DRIVE
+TARGET_DRIVE=${TARGET_DRIVE:-$DEFAULT_DRIVE}
+
+read -p "Enter hostname [default: kitty]: " MY_HOSTNAME
+MY_HOSTNAME=${MY_HOSTNAME:-kitty}
+
+read -p "Enter username [default: user]: " MY_USERNAME
+MY_USERNAME=${MY_USERNAME:-user}
+
+read -s -p "Set root password: " ROOT_PASS
+echo
+read -s -p "Set password for $MY_USERNAME: " USER_PASS
+echo
+
+# partition name stuff
+if [[ "${TARGET_DRIVE: -1}" =~ [0-9] ]]; then
+    EFI_PART="${TARGET_DRIVE}p1"
+    SWAP_PART="${TARGET_DRIVE}p2"
+    BTRFS_PART="${TARGET_DRIVE}p3"
+else
+    EFI_PART="${TARGET_DRIVE}1"
+    SWAP_PART="${TARGET_DRIVE}2"
+    BTRFS_PART="${TARGET_DRIVE}3"
+fi
+
+echo "==> PARTITIONING DRIVES..."
+DEFAULT_SWAP="4G"
+read -p "Enter swap partition size [Default: $DEFAULT_SWAP]: " CUSTOM_SWAP
+CUSTOM_SWAP=${CUSTOM_SWAP:-$DEFAULT_SWAP}
+sfdisk "$TARGET_DRIVE" <<EOF
+label: gpt
+size=1G,type=uefi,bootable
+size=$CUSTOM_SWAP,type=swap
+size=,type=linux
+EOF
+
+udevadm settle
+
+echo "==> FORMATTING LOCAL TARGET DRIVES..."
+mkfs.vfat -F 32 "$EFI_PART"
+mkswap "$SWAP_PART"
+mkfs.btrfs -f "$BTRFS_PART"
+
+echo "==> MOUNTING SUBVOLUMES..."
+swapon "$SWAP_PART"
+mount "$BTRFS_PART" /mnt
+btrfs subvolume create /mnt/@
+btrfs subvolume create /mnt/@home
+umount /mnt
+
+mount -o noatime,compress=zstd,subvol=@ "$BTRFS_PART" /mnt
+mkdir -p /mnt/boot /mnt/home
+mount "$EFI_PART" /mnt/boot
+mount -o noatime,compress=zstd,subvol=@home "$BTRFS_PART" /mnt/home
+
+echo "==> PACSTRAPPING PACKAGES..."
+DEFAULT_PACKAGES
+pacstrap -K /mnt base base-devel linux linux-firmware amd-ucode hyprland foot waybar vim btrfs-progs networkmanager git wget unzip
+
+echo "==> EXPORTING TARGET CONFIGURATIONS..."
+genfstab -U /mnt >> /mnt/etc/fstab
+
+echo "==> COPYING CONFIG ASSETS TO TARGET SKELETON..."
+mkdir -p /mnt/etc/skel/.config/
+if [ -d /etc/skel/.config ]; then
+    cp -r /etc/skel/.config/* /mnt/etc/skel/.config/
+fi
+
+if [ -f /etc/skel/.bashrc ]; then
+    cp /etc/skel/.bashrc /mnt/etc/skel/.bashrc
+fi
+
+echo "==> HANDING OFF CONTROL TO CHROOT ENVIRONMENT..."
+cp /usr/local/bin/chroot-setup.sh /mnt/chroot-setup.sh
+chmod +x /mnt/chroot-setup.sh
+
+echo "==> HANDING OFF CONFIGURATION TO CHROOT..."
+MY_HOSTNAME="$MY_HOSTNAME" \
+MY_USERNAME="$MY_USERNAME" \
+ROOT_PASS="$ROOT_PASS" \
+USER_PASS="$USER_PASS" \
+TARGET_DRIVE="$TARGET_DRIVE" \
+arch-chroot /mnt /chroot-setup.sh
+
+rm -f /mnt/chroot-setup.sh
+
+echo "==> SETUP COMPLETE. UNMOUNTING STACK."
+umount -R /mnt
+echo "Success!"
