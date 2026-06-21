@@ -4,7 +4,7 @@
 iso_name="kitty"
 iso_label="ARCH_$(date --date="@${SOURCE_DATE_EPOCH:-$(date +%s)}" +%Y%m)"
 iso_publisher="Kitty Linux <https://archlinux.org>"
-iso_application="Arch Linux Live/Rescue DVD"
+iso_application="Kitty Linux Live DVD"
 iso_version="$(date --date="@${SOURCE_DATE_EPOCH:-$(date +%s)}" +%Y.%m.%d)"
 install_dir="arch"
 buildmodes=('iso')
@@ -18,6 +18,6 @@ file_permissions=(
   ["/root"]="0:0:750"
   ["/root/.automated_script.sh"]="0:0:755"
   ["/root/.gnupg"]="0:0:700"
-  ["/usr/local/bin/deploy-my-os.sh"]="0:0:755"
-  ["/usr/local/bin/chroot-setup.sh"]="0:0:755"
+  ["/usr/local/bin/deploy-my-os.sh"]="0:0:777"
+  ["/usr/local/bin/chroot-setup.sh"]="0:0:777"
 )

@@ -38,10 +38,10 @@ ID=kitty
 ID_LIKE=arch
 BUILD_ID=rolling
 ANSI_COLOR="38;2;23;147;209"
-HOME_URL="https://github.com/yourusername"
+HOME_URL="https://github.com/Kitty-Linux"
 DOCUMENTATION_URL="https://wiki.archlinux.org/"
 SUPPORT_URL="https://bbs.archlinux.org/"
-BUG_REPORT_URL="https://github.com/yourusername/issues"
+BUG_REPORT_URL="https://github.com/Kitty-Linux/kitty/issues"
 LOGO=archlinux
 EOF
 
@@ -52,17 +52,38 @@ DISTRIB_CODENAME=rolling
 DISTRIB_DESCRIPTION="Kitty Linux"
 EOF
 
+echo "--> Configuring Plymouth bootsplash..."
+sed -i 's/\budev\b/udev plymouth/' /etc/mkinitcpio.conf
+plymouth-set-default-theme -R spinner
+
+echo "--> Injecting custom Kitty Linux branding into Plymouth..."
+
+THEME_DIR="/usr/share/plymouth/themes/spinner"
+if [ -f /usr/share/kitty-branding/watermark.png ]; then
+    cp /usr/share/kitty-branding/watermark.png "$THEME_DIR/watermark.png"
+fi
+sed -i 's/^WatermarkVerticalAlignment=.*/WatermarkVerticalAlignment=.5/' "$THEME_DIR/spinner.plymouth"
+mkinitcpio -P
+
 echo "--> Deploying Bootloader..."
 bootctl install
 
 TARGET_PARTUUID=$(blkid -s PARTUUID -o value "$ROOT_PART")
 
+if [ -f /boot/intel-ucode.img ]; then
+    UCODE_LINE="initrd  /intel-ucode.img"
+elif [ -f /boot/amd-ucode.img ]; then
+    UCODE_LINE="initrd  /amd-ucode.img"
+else
+    UCODE_LINE=""
+fi
+
 cat <<EOF > /boot/loader/entries/arch.conf
 title   Kitty Linux (stable)
 linux   /vmlinuz-linux
-initrd  /amd-ucode.img
+$UCODE_LINE
 initrd  /initramfs-linux.img
-options root=PARTUUID=$TARGET_PARTUUID rw rootflags=subvol=@
+options root=PARTUUID=$TARGET_PARTUUID rw rootflags=subvol=@ quiet loglevel=3 rd.systemd.show_status=false rd.udev.log_level=3 vt.global_cursor_default=0 splash
 EOF
 
 cat <<EOF > /boot/loader/loader.conf

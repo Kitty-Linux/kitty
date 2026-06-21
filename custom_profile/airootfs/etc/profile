@@ -1,3 +1,4 @@
+clear
 echo -e '⠀⠀⠀⠀⠀⠀⢀⣿⡀⠀⠀⠀⠀⠀⠀⠀⠀                            
 ⠀⠀⠀⠀⠀⢀⣾⣿⡇⠀⠀⠀⠀⠀⢀⣼⡇                           
 ⠀⠀⠀⠀⠀⣸⣿⣿⡇⠀⠀⠀⠀⣴⣿⣿⠃   _  _____ _____ _______   __   _    ___ _  _ _   ___  __
@@ -8,3 +9,11 @@ echo -e '⠀⠀⠀⠀⠀⠀⢀⣿⡀⠀⠀⠀⠀⠀⠀⠀⠀
 ⠚⠉⠀⠈⠻⣿⣿⣿⣿⣿⣮⣤⣤⣿⡟⠁⠀
 ⠀⠀⠀⠀⠀⠀⠈⠙⠛⠛⠛⠛⠛⠁⠀⠒⠤
 ⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠑⠀⠀'
+if [ "$(tty)" = "/dev/tty1" ] && [ -z "$INSTALL_ATTEMPTED" ]; then
+    export INSTALL_ATTEMPTED=1
+
+    if [ -f /usr/local/bin/deploy ]; then
+        chmod +x /usr/local/bin/deploy
+        /usr/local/bin/deploy
+    fi
+fi

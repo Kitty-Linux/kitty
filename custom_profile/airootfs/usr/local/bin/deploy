@@ -5,6 +5,14 @@ echo "=================================================="
 echo "       WELCOME TO THE KITTY LINUX INSTALLER       "
 echo "=================================================="
 
+echo "Press [ENTER] to launch the installation wizard,"
+read -p "or type 'exit' to enter a root shell: " INTRO_CHOICE
+
+if [ "$INTRO_CHOICE" == "exit" ]; then
+    echo "Exiting installer. Type 'deploy' to relaunch at any time."
+    exit 0
+fi
+
 TARGET_DRIVE="/dev/nvme0n1"
 
 echo "==> PRE-INSTALL SETUP..."
@@ -68,8 +76,37 @@ mount "$EFI_PART" /mnt/boot
 mount -o noatime,compress=zstd,subvol=@home "$BTRFS_PART" /mnt/home
 
 echo "==> PACSTRAPPING PACKAGES..."
-DEFAULT_PACKAGES
-pacstrap -K /mnt base base-devel linux linux-firmware amd-ucode hyprland foot waybar vim btrfs-progs networkmanager git wget unzip
+
+echo "--> Scanning hardware architecture..."
+
+CPU_VENDOR=$(lscpu | grep -i "Vendor ID:" | awk -F: '{print $2}' | xargs)
+
+case "$CPU_VENDOR" in
+    "AuthenticAMD")
+        echo "--> AMD CPU detected. Setting target driver flag: amd-ucode"
+        MICROCODE="amd-ucode"
+        ;;
+    "GenuineIntel")
+        echo "--> Intel CPU detected. Setting target driver flag: intel-ucode"
+        MICROCODE="intel-ucode"
+        ;;
+    *)
+        echo "--> WARNING: Unknown CPU vendor ($CPU_VENDOR). Proceeding without microcode patches."
+        MICROCODE=""
+        ;;
+esac
+
+if [ -n "$MICROCODE" ]; then
+    echo "--> microcode allocation target initialized: $MICROCODE"
+else
+    echo "--> Hardware-specific microcode optimization bypassed."
+fi
+
+DEFAULT_PACKAGES="curl sudo git btrfs-progs networkmanager wget plymouth hyprland vim foot foot-terminfo $MICROCODE"
+echo "--> The installer will install: $DEFAULT_PACKAGES"
+read -p "Install more packages? [default: ]: " MY_PACKAGES
+MY_PACKAGES=${MY_PACKAGES:-}
+pacstrap -K /mnt base base-devel linux linux-firmware $DEFAULT_PACKAGES $MY_PACKAGES
 
 echo "==> EXPORTING TARGET CONFIGURATIONS..."
 genfstab -U /mnt >> /mnt/etc/fstab
@@ -82,6 +119,14 @@ fi
 
 if [ -f /etc/skel/.bashrc ]; then
     cp /etc/skel/.bashrc /mnt/etc/skel/.bashrc
+fi
+
+echo "==> COPYING BRANDING ASSETS TO CHROOT..."
+mkdir -p /mnt/usr/share/kitty-branding/
+if [ -f /usr/share/kitty-branding/watermark.png ]; then
+    cp /usr/share/kitty-branding/watermark.png /mnt/usr/share/kitty-branding/watermark.png
+else
+    echo "Warning: Source watermark.png not found on the live ISO!"
 fi
 
 echo "==> HANDING OFF CONTROL TO CHROOT ENVIRONMENT..."
