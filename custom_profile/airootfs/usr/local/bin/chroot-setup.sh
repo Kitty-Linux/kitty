@@ -29,6 +29,7 @@ echo "%wheel ALL=(ALL:ALL) ALL" >> /etc/sudoers
 
 echo "--> Setting up systemd services..."
 systemctl enable NetworkManager
+systemctl --root=/ --global enable pipewire.socket pipewire-pulse.socket wireplumber.service
 
 echo "--> Finalizing OS Branding..."
 cat <<EOF > /etc/os-release

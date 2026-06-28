@@ -26,9 +26,14 @@ ntfs-3g
 dhcpcd
 ethtool
 networkmanager
+openssh
 wpa_supplicant
+tcpdump
 
+# ARCH
 arch-install-scripts
+reflector
+
 bash-completion
 cryptsetup
 diffutils
@@ -49,10 +54,8 @@ mmc-utils
 mtools
 nbd
 ndisc6
-openssh
 pv
 qemu-guest-agent
-reflector
 rsync
 screen
 sdparm
@@ -62,9 +65,7 @@ smartmontools
 sof-firmware
 squashfs-tools
 systemd-resolvconf
-tcpdump
 terminus-font
-tmux
 tpm2-tss
 udftools
 usb_modeswitch

@@ -102,7 +102,7 @@ else
     echo "--> Hardware-specific microcode optimization bypassed."
 fi
 
-DEFAULT_PACKAGES="curl sudo git btrfs-progs networkmanager wget plymouth hyprland vim foot foot-terminfo $MICROCODE"
+DEFAULT_PACKAGES="curl sudo git btrfs-progs networkmanager wget plymouth hyprland vim foot foot-terminfo hyprpolkitagent hyprpaper mako wofi nautilus pipewire pipewire-alsa pipewire-pulse wl-clipboard xdg-desktop-portal-hyprland $MICROCODE"
 echo "--> The installer will install: $DEFAULT_PACKAGES"
 read -p "Install more packages? [default: ]: " MY_PACKAGES
 MY_PACKAGES=${MY_PACKAGES:-}
